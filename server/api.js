@@ -1,5 +1,4 @@
-const RAPIDAPI_KEY = '48a9a0941fmshf6b730e94c6a90ep10226ejsne803ddf287c9';
-const API_URL = 'https://ce.judge0.com/submissions';
+const RAPIDAPI_KEY = import.meta.env.RAPIDAPI_KEY;
 
 // Replace Buffer-based code with browser-native functions
 const base64Encode = (str) => {
