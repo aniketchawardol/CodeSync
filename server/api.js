@@ -1,4 +1,4 @@
-const RAPIDAPI_KEY = import.meta.env.RAPIDAPI_KEY;
+const RAPIDAPI_KEY = import.meta.env.VITE_RAPIDAPI_KEY;
 
 // Replace Buffer-based code with browser-native functions
 const base64Encode = (str) => {
@@ -33,7 +33,7 @@ export const evaluateCode = async ({ code, languageId, stdin }) => {
   const options = {
     method: 'POST',
     headers: {
-      'x-rapidapi-key': '48a9a0941fmshf6b730e94c6a90ep10226ejsne803ddf287c9',
+      'x-rapidapi-key': RAPIDAPI_KEY,
       'x-rapidapi-host': 'judge0-ce.p.rapidapi.com',
       'Content-Type': 'application/json'
     },
@@ -64,7 +64,7 @@ async function getSubmission(token) {
   const options = {
     method: 'GET',
     headers: {
-      'x-rapidapi-key': '48a9a0941fmshf6b730e94c6a90ep10226ejsne803ddf287c9',
+      'x-rapidapi-key': RAPIDAPI_KEY,
       'x-rapidapi-host': 'judge0-ce.p.rapidapi.com'
     }
   };
@@ -91,7 +91,7 @@ const checkStatus = async (token) => {
   const options = {
     method: 'GET',
     headers: {
-      'x-rapidapi-key': 'b067fd529fmsh5d4c4fe7374370fp1f5ec4jsnea02fabffb0d',
+      'x-rapidapi-key': RAPIDAPI_KEY,
       'x-rapidapi-host': 'judge0-ce.p.rapidapi.com'
     }
   };
