@@ -3,6 +3,7 @@ import Editor from "@monaco-editor/react";
 import { evaluateCode } from "../../server/api";
 import { io } from "socket.io-client";
 import { CODE_SNIPPETS } from "../constants.js";
+import { useNavigate, useParams } from "react-router-dom";
 
 const socket = io("http://localhost:3000");
 
@@ -12,16 +13,20 @@ function CodeEditor() {
   const [output, setOutput] = useState("");
   const [language, setLanguage] = useState("71"); // Default to Python
   const [isLoading, setIsLoading] = useState(false);
+  const { roomId } = useParams();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    socket.on("code", (updatedCode) => {
-      setCode(updatedCode);
+    socket.emit("join-room", roomId); // Join the correct room
+
+    socket.on("receive-code", (newCode) => {
+      setCode(newCode); // Update code when someone else edits
     });
 
     return () => {
-      socket.off("code");
+      socket.off("receive-code");
     };
-  }, []);
+  }, [roomId]);
 
   const handleRunCode = async () => {
     setIsLoading(true);
@@ -68,7 +73,7 @@ function CodeEditor() {
           value={code}
           onChange={(value) => {
             setCode(value);
-            socket.emit("code", value);
+            socket.emit("code-update", { roomId, code: value });
           }}
         />
       </div>
@@ -98,6 +103,13 @@ function CodeEditor() {
           value={output}
           readOnly
         ></textarea>
+
+        <div  className="flex flex-col items-end   w-full mr-10" onClick={()=>{
+          socket.disconnect();
+          navigate('/');
+        }}>
+          <button className="bg-red-500 p-2 m-2 rounded-lg w-20 text-white">Leave</button>
+        </div>
       </div>
     </div>
   );
