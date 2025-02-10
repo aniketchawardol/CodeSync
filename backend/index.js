@@ -19,9 +19,11 @@ const io = new Server(server, {
   }
 });
 
+
+
 //Socket io
-io.on('connection', (socket) => {
-  console.log("new user connected", socket.id);
+io.on("connection", (socket) => {
+  console.log("New user connected:", socket.id);
 
   socket.on("join-room", (roomId) => {
     socket.join(roomId);
@@ -30,6 +32,11 @@ io.on('connection', (socket) => {
 
   socket.on("code-update", ({ roomId, code }) => {
     socket.to(roomId).emit("receive-code", code); // Broadcast code to others
+  });
+
+  socket.on("cursor-update", ({ roomId, userName, cursorPosition }) => {
+    // Broadcast cursor update to other users in the room (excluding the sender)
+    socket.to(roomId).emit("cursor-update", { userName, cursorPosition });
   });
 
   socket.on("disconnect", () => {

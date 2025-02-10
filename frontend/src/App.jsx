@@ -8,16 +8,11 @@ function App() {
     <>
 
       <div className="flex flex-col items-center justify-center w-full h-lvh bg-gray-800">
-        
-
+      
           <Routes>
             <Route index element={<Admin />} />
-            <Route path="/editor/:roomId" element={<CodeEditor />} />
+            <Route path="/editor/:roomId/:userName" element={<CodeEditor />} />
           </Routes>
-
-      <div className="flex flex-col items-center justify-center w-full h-lvh bg-gray-800 rounded-lg">
-        <CodeEditor/>
-
       </div>
     </>
   );
