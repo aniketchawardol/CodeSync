@@ -118,9 +118,11 @@ function CodeEditor() {
 
   return (
     <>
-      <div className="h-screen w-full flex flex-col md:flex-row">
+      <div className="h-screen w-full flex flex-col md:flex-row overflow-hidden">
+        
         <SideMenu userName={userName} />
-        <div className="md:w-3/5 w-full" style={{ position: "relative" }}>
+
+        <div className="md:w-3/5 w-fit" style={{ position: "relative" }}>
           <select
             className="bg-gray-600 text-black mx-5 my-5 rounded-xl"
             value={language}
