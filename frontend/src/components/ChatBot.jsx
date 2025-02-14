@@ -10,7 +10,7 @@ const Chatbot = ({wdth}) => {
   const [input, setInput] = useState("");
 
   const genAI = new GoogleGenerativeAI(
-    "AIzaSyAVj3ZWOgKYcGgwzmvLyoZZIqqCCgzPte0"
+    gemini_api
   );
   
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -54,7 +54,7 @@ const Chatbot = ({wdth}) => {
           </div>
         ))}
       </div>
-      
+
       <div className="p-4 bg-white flex">
         <input
           type="text"
