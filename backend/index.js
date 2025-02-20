@@ -8,7 +8,7 @@ const app = express();
 const server = http.createServer(app);
 
 app.use(cors({
-  origin: "http://localhost:5173", // Allow frontend URL
+  origin: "http://localhost:5173",
   methods: ["GET", "POST"]
 }));
 
@@ -19,9 +19,6 @@ const io = new Server(server, {
   }
 });
 
-
-
-//Socket io
 io.on("connection", (socket) => {
   console.log("New user connected:", socket.id);
 
@@ -31,12 +28,15 @@ io.on("connection", (socket) => {
   });
 
   socket.on("code-update", ({ roomId, code }) => {
-    socket.to(roomId).emit("receive-code", code); // Broadcast code to others
+    socket.to(roomId).emit("receive-code", code);
   });
 
   socket.on("cursor-update", ({ roomId, userName, cursorPosition }) => {
-    // Broadcast cursor update to other users in the room (excluding the sender)
     socket.to(roomId).emit("cursor-update", { userName, cursorPosition });
+  });
+
+  socket.on("chat-send", ({ roomId, userName, text }) => {
+    socket.to(roomId).emit("receive-chat", { userName, text });
   });
 
   socket.on("disconnect", () => {

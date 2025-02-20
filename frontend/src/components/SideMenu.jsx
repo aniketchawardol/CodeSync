@@ -1,13 +1,15 @@
 import { useState, useRef } from "react";
 import clsx from "clsx";
 import Chatbot from "./ChatBot";
-import { Stars } from "lucide-react";
+import Chats from "./Chats";
+import { Stars, MessageCircle } from "lucide-react";
 
-function SideMenu(props) {
+function SideMenu({userName, socket, roomId}) {
   const [clicked, setClicked] = useState(false);
   const [option, setOption] = useState("None");
   const [sidebarWidth, setSidebarWidth] = useState(88*4);
   const [isResizing, setIsResizing] = useState(false);
+  const [messages, setMessages] = useState([]);
   const sidebarRef = useRef(null);
 
   function handleClick(e) {
@@ -70,6 +72,16 @@ function SideMenu(props) {
             <Stars/>
           </span>
 
+          <span
+            onClick={(e) => {
+              handleClick("Chat");
+            }}
+            className="mt-2 grid aspect-square h-10 place-content-center rounded-lg bg-gray-100 text-xs text-gray-600 cursor-pointer hover:bg-blue-200"
+            style={option=="Chat" ? {backgroundColor: "#8cb4ff"} : null}
+          >
+            <MessageCircle/>
+          </span>
+
           <div className="absolute inset-x-0 bottom-0 w-fit border-t border-gray-100 bg-white">
             <a
               href="#"
@@ -85,7 +97,8 @@ function SideMenu(props) {
           
         </div>
 
-        <div className="z-10">{option == "AI" && <Chatbot wdth={sidebarWidth-80} />}</div>
+        <div className="z-10">{option === "AI" && <Chatbot wdth={sidebarWidth-80} />}</div>
+        <div className="z-10">{option === "Chat" && <Chats wdth={sidebarWidth-80} userName={userName} socket={socket} roomId={roomId} messages={messages} setMessages={setMessages}/>}</div>
         
         <div
           className="relative top-0 right-0 h-full w-2 cursor-ew-resize bg-gray-300"

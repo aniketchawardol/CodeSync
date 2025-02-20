@@ -1,4 +1,3 @@
-// src/Chatbot.jsx
 import React, { useState } from "react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import ChatMessage from "./ChatMessage";
@@ -19,7 +18,7 @@ const Chatbot = ({wdth}) => {
     if (input.trim()) {
       setMessages((prevMessages) => [
         ...prevMessages,
-        { text: input, sender: "user" },
+        { text: input, sender: "user", userName: "You" },
       ]);
     
       setInput("");
@@ -30,7 +29,7 @@ const Chatbot = ({wdth}) => {
     
       setMessages((prevMessages) => [
         ...prevMessages,
-        { text: botResponse, sender: "AI" },
+        { text: botResponse, sender: "AI", userName: "AI" },
       ]);
     
       console.log("Updated Messages:", messages); // Still shows old state because setState is async

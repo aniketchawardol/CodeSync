@@ -3,11 +3,19 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { Clipboard, ClipboardCheck } from "lucide-react"; // Icon for copy button
+import { Clipboard, ClipboardCheck } from "lucide-react"; // Icons for copy button
 
 const ChatMessage = ({ message }) => {
   return (
-    <div className={`p-3 rounded-lg ${message.sender === "user" ? "bg-blue-500 text-white" : "bg-gray-300"}`}>
+    <div
+      className={`p-2 my-1 rounded-lg w-[70%] ${
+        message.sender === "user" ? "bg-blue-500 text-white float-right" : "bg-gray-300 float-left"
+      }`}
+    >
+      <p className="text-sm font-semibold mb-1">
+        {message.userName}
+      </p>
+
       <ReactMarkdown
         children={message.text}
         remarkPlugins={[remarkGfm]}
