@@ -1,16 +1,31 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import clsx from "clsx";
 import Chatbot from "./ChatBot";
 import Chats from "./Chats";
 import { Stars, MessageCircle } from "lucide-react";
 
-function SideMenu({userName, socket, roomId}) {
+function SideMenu({ userName, socket, roomId }) {
   const [clicked, setClicked] = useState(false);
   const [option, setOption] = useState("None");
-  const [sidebarWidth, setSidebarWidth] = useState(88*4);
+  const [sidebarWidth, setSidebarWidth] = useState(88 * 4);
   const [isResizing, setIsResizing] = useState(false);
   const [messages, setMessages] = useState([]);
   const sidebarRef = useRef(null);
+  useEffect(() => {
+    const handleReceiveChat = ({ userName: senderName, text }) => {
+      console.log("Received chat:", text, senderName);
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { text, sender: "other", userName: senderName },
+      ]);
+    };
+
+    socket.on("receive-chat", handleReceiveChat);
+
+    return () => {
+      socket.off("receive-chat", handleReceiveChat);
+    };
+  }, [socket, userName]);
 
   function handleClick(e) {
     setClicked((clicked) => {
@@ -22,7 +37,7 @@ function SideMenu({userName, socket, roomId}) {
         setOption(e);
       }, 500);
     } else {
-      setSidebarWidth(88*4);
+      setSidebarWidth(88 * 4);
       setOption("None");
     }
   }
@@ -36,7 +51,7 @@ function SideMenu({userName, socket, roomId}) {
 
   function handleMouseMove(e) {
     const newWidth = e.x;
-    if (newWidth > 88*4 && newWidth < 660) { // Min and max width
+    if (newWidth > 88 * 4 && newWidth < 660) { // Min and max width
       setSidebarWidth(newWidth);
     }
   }
@@ -49,14 +64,13 @@ function SideMenu({userName, socket, roomId}) {
   return (
     <div className="flex flex-col">
       <div
-      ref={sidebarRef}
-      className={clsx(
-        " flex h-full w-16 justify-between border-e bg-white ",
-        { "transition-all duration-300": !isResizing } 
-      )}
-      style={clicked ? { width: sidebarWidth } : { width: 64 }}
+        ref={sidebarRef}
+        className={clsx(
+          " flex h-full w-16 justify-between border-e bg-white ",
+          { "transition-all duration-300": !isResizing }
+        )}
+        style={clicked ? { width: sidebarWidth } : { width: 64 }}
       >
-        
         <div className="w-16 px-4 py-6 h-svh">
           <span className="grid aspect-square h-10 my-2 place-content-center rounded-lg bg-gray-100 text-xs text-gray-600 cursor-pointer hover:bg-blue-200">
             Logo
@@ -67,13 +81,13 @@ function SideMenu({userName, socket, roomId}) {
               handleClick("AI");
             }}
             className="grid aspect-square h-10 place-content-center rounded-lg bg-gray-100 text-xs text-gray-600 cursor-pointer hover:bg-blue-200"
-            style={option=="AI" ? {backgroundColor: "#8cb4ff"} : null}
+            style={option == "AI" ? { backgroundColor: "#8cb4ff" } : null}
           >
-            <Stars/>
+            <Stars />
           </span>
 
           <span
-            onClick={(e) => {
+            onClick={() => {
               handleClick("Chat");
             }}
             className="mt-2 grid aspect-square h-10 place-content-center rounded-lg bg-gray-100 text-xs text-gray-600 cursor-pointer hover:bg-blue-200"
@@ -94,12 +108,24 @@ function SideMenu({userName, socket, roomId}) {
               />
             </a>
           </div>
-          
         </div>
 
-        <div className="z-10">{option === "AI" && <Chatbot wdth={sidebarWidth-80} />}</div>
-        <div className="z-10">{option === "Chat" && <Chats wdth={sidebarWidth-80} userName={userName} socket={socket} roomId={roomId} messages={messages} setMessages={setMessages}/>}</div>
-        
+        <div className="z-10">
+          {option === "AI" && <Chatbot wdth={sidebarWidth - 80} />}
+        </div>
+        <div className="z-10">
+          {option === "Chat" && (
+            <Chats
+              wdth={sidebarWidth - 80}
+              userName={userName}
+              socket={socket}
+              roomId={roomId}
+              messages={messages}
+              setMessages={setMessages}
+            />
+          )}
+        </div>
+
         <div
           className="relative top-0 right-0 h-full w-2 cursor-ew-resize bg-gray-300"
           onMouseDown={handleMouseDown}
