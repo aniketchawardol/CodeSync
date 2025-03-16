@@ -1,8 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
+import LoginButton from "../auth/login";
+import LogoutButton from "../auth/logout";
+import { useAuth0 } from "@auth0/auth0-react";
 
 const Admin = () => {
+  const { user, isAuthenticated } = useAuth0();
   const [roomId, setRoomId] = useState("");
   const [userName, setUserName] = useState("");
   const navigate = useNavigate();
@@ -20,17 +24,56 @@ const Admin = () => {
     }
   };
 
+  const handleUserLoginOrSignup = async (name, email) => {
+    try {
+      // Call the backend API
+      const response = await fetch("http://localhost:3000/api/user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to handle user login/signup");
+      }
+
+      const data = await response.json();
+      console.log(data);
+      return data;
+    } catch (error) {
+      console.error("Error handling user login/signup:", error);
+      throw error;
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      handleUserLoginOrSignup(user.given_name, user.email)
+        .then((result) => console.log(result))
+        .catch((err) => console.error(err));
+    }
+  }, [isAuthenticated, user]);
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className="flex flex-col items-center justify-center gap-4">
+      <div className="fixed top-0 right-0 m-4">
+        {isAuthenticated ? <LogoutButton /> : <LoginButton />}
+      </div>
       <h1 className="text-white text-2xl font-bold">CodeSync</h1>
 
       <input
-          type="text"
-          placeholder="Enter Username"
-          value={userName}
-          onChange={(e) => setUserName(e.target.value)}
-          className="px-4 py-2 text-white border-green-500 rounded-l-lg border w-full"
-        />
+        type="text"
+        placeholder="Enter Username"
+        value={userName}
+        onChange={(e) => setUserName(e.target.value)}
+        className="px-4 py-2 text-white border-green-500 rounded-l-lg border w-full"
+      />
 
       <button
         className="bg-blue-500 text-white px-4 py-2 rounded-lg w-full "
