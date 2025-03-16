@@ -8,8 +8,8 @@ import { Auth0Provider } from '@auth0/auth0-react';
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
     <Auth0Provider
-    domain="dev-74pp57b6cxcc4b4l.us.auth0.com"
-    clientId="is5zoZK5Ff1INpddNMBEqCSEg8hngrns"
+    domain={import.meta.env.AUTH0_DOMAIN}
+    clientId={import.meta.env.AUTH0_CLIENT_ID}
     authorizationParams={{
       redirect_uri: "http://localhost:5173/"
     }}
