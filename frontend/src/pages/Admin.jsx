@@ -6,7 +6,7 @@ import LogoutButton from "../auth/logout";
 import { useAuth0 } from "@auth0/auth0-react";
 
 const Admin = () => {
-  const { user, isAuthenticated } = useAuth0();
+  const { user, isAuthenticated, isLoading } = useAuth0();
   const [roomId, setRoomId] = useState("");
   const [userName, setUserName] = useState("");
   const navigate = useNavigate();
