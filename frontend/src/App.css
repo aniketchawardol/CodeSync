@@ -1,0 +1,37 @@
+.file-explorer {
+    width: 250px;
+    height: 100%;
+    font-size: 14px;
+    font-family: 'Courier New', monospace;
+    user-select: none;
+  }
+  
+  .folder-item, .file-item {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin: 2px 0;
+  }
+  
+  .folder-item:hover, .file-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .folder-item.expanded {
+    font-weight: bold;
+  }
+  
+  .file-item.active {
+    background-color: rgba(59, 130, 246, 0.3);
+  }
+  
+  .folder-children {
+    margin-left: 0;
+  }
+  
+  .file-icon, .folder-icon {
+    margin-right: 6px;
+    min-width: 16px;
+  }

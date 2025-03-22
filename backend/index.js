@@ -5,16 +5,18 @@ import cors from "cors";
 import { Server } from "socket.io";
 import mongoose from "mongoose";
 import User from "./database.js";
-import 'dotenv/config'; 
+import "dotenv/config";
 
 const app = express();
 app.use(express.json());
 const server = http.createServer(app);
 
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST"]
-}));
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST"],
+  })
+);
 
 app.post("/api/user", async (req, res) => {
   const { name, email } = req.body;
@@ -25,13 +27,17 @@ app.post("/api/user", async (req, res) => {
 
     if (existingUser) {
       console.log("User already exists:", existingUser);
-      return res.status(200).json({ message: "User already exists", user: existingUser });
+      return res
+        .status(200)
+        .json({ message: "User already exists", user: existingUser });
     } else {
       // Create a new user if not found
       const newUser = new User({ name, email });
       await newUser.save();
       console.log("New user created:", newUser);
-      return res.status(201).json({ message: "New user created", user: newUser });
+      return res
+        .status(201)
+        .json({ message: "New user created", user: newUser });
     }
   } catch (error) {
     console.error("Error handling user login/signup:", error);
@@ -42,8 +48,8 @@ app.post("/api/user", async (req, res) => {
 const io = new Server(server, {
   cors: {
     origin: "http://localhost:5173",
-    methods: ["GET", "POST"]
-  }
+    methods: ["GET", "POST"],
+  },
 });
 
 io.on("connection", (socket) => {
@@ -66,6 +72,34 @@ io.on("connection", (socket) => {
     socket.to(roomId).emit("receive-chat", { userName, text });
   });
 
+  // File system related events
+  socket.on(
+    "file-opened",
+    ({ roomId, fileName, content, filePath, language }) => {
+      console.log(`File opened in room ${roomId}: ${fileName}`);
+      socket
+        .to(roomId)
+        .emit("file-opened", { fileName, content, filePath, language });
+    }
+  );
+
+  socket.on("file-content-update", ({ roomId, fileName, content }) => {
+    console.log(`File content updated in room ${roomId}: ${fileName}`);
+    socket.to(roomId).emit("file-content-update", { fileName, content });
+  });
+
+  socket.on("file-deleted", ({ roomId, path, isFolder }) => {
+    console.log(
+      `${isFolder ? "Folder" : "File"} deleted in room ${roomId}: ${path}`
+    );
+    socket.to(roomId).emit("file-deleted", { path, isFolder });
+  });
+
+  socket.on("item-created", ({ roomId, path, name, type }) => {
+    console.log(`${type} created in room ${roomId}: ${path}/${name}`);
+    socket.to(roomId).emit("item-created", { path, name, type });
+  });
+
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });
@@ -73,16 +107,23 @@ io.on("connection", (socket) => {
 
 const dbURI = process.env.MONGO_URI;
 
-mongoose.connect(dbURI)
-  .then((result)=>{server.listen(3000, () => {
-    console.log("Server is running on port 3000");
-  })})
-  .catch((err)=>{console.log(err)});
+mongoose
+  .connect(
+    "mongodb+srv://dbUser:codesync@codesync.tjq43.mongodb.net/codesync?retryWrites=true&w=majority&appName=codesync"
+  )
+  .then((result) => {
+    server.listen(3000, () => {
+      console.log("Server is running on port 3000");
+    });
+  })
+  .catch((err) => {
+    console.log(err);
+  });
 
 const _dirname = path.resolve();
 
 app.use(express.static(path.join(_dirname, "/frontend/dist")));
 
-app.get('*', (_, res) => {
+app.get("*", (_, res) => {
   res.sendFile(path.resolve(_dirname, "frontend", "dist", "index.html"));
 });
