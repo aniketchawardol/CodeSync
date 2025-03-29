@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { v4 as uuidv4 } from "uuid";
-import LoginButton from "../auth/login";
+import { v4 as uuidv4} from "uuid";
+import LoginButton from "../auth/login"; 
 import LogoutButton from "../auth/logout";
 import { useAuth0 } from "@auth0/auth0-react";
+
 
 const Admin = () => {
   const { user, isAuthenticated, isLoading } = useAuth0();
@@ -11,18 +12,72 @@ const Admin = () => {
   const [userName, setUserName] = useState("");
   const navigate = useNavigate();
 
-  const createRoom = () => {
-    const newRoomId = uuidv4(); // Generate a unique room ID
-    navigate(`/editor/${newRoomId}/${userName}`);
-  };
-
-  const joinRoom = () => {
-    if (roomId.trim()) {
-      navigate(`/editor/${roomId}/${userName}`);
-    } else {
-      alert("Enter a valid Room ID!");
+  const createRoom = async () => {
+    try {
+      if (!user || !user.email) {
+        throw new Error("User email is undefined");
+      }
+  
+      const newRoomId = uuidv4();
+  
+      // Default folder structure
+      const defaultFolder = {
+        src: {
+          type: "folder",
+          children: {
+            "index.js": {
+              type: "file",
+              content: "// Welcome to CodeSathi",
+              language: "javascript",
+              status: "unchanged",
+            },
+          },
+        },
+      };
+  
+      // Step 1: Create a new room entry in the database
+      const roomResponse = await fetch("http://localhost:3000/api/room", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          roomId: newRoomId,
+          createdBy: user.email,
+          folder: defaultFolder, // Always use default
+        }),
+      });
+  
+      if (!roomResponse.ok) {
+        throw new Error("Failed to create room in database");
+      }
+  
+      // Step 2: Navigate to the room's editor page
+      navigate(`/editor/${newRoomId}/${userName}`, {
+        state: { folder: defaultFolder },
+      });
+  
+    } catch (error) {
+      console.error("Error creating room: Admin.jsx", error);
+      // Handle error (show message to user, etc.)
     }
   };
+  
+  const joinRoom = async () => {
+    try {
+      if (!roomId.trim()) {
+        alert("Enter a valid Room ID!");
+        return;
+      }
+      // Navigate to the editor with the correct folder
+      navigate(`/editor/${roomId}/${userName}`);
+  
+    } catch (error) {
+      console.error("Error joining room:", error);
+      alert("Failed to join the room. Please check the Room ID and try again.");
+    }
+  };
+  
 
   const handleUserLoginOrSignup = async (name, email) => {
     try {
@@ -65,7 +120,7 @@ const Admin = () => {
       <div className="fixed top-0 right-0 m-4">
         {isAuthenticated ? <LogoutButton /> : <LoginButton />}
       </div>
-      <h1 className="text-white text-2xl font-bold">CodeSync</h1>
+      <h1 className="text-white text-2xl font-bold">CodeSathi</h1>
 
       <input
         type="text"
@@ -77,8 +132,7 @@ const Admin = () => {
 
       <button
         className="bg-blue-500 text-white px-4 py-2 rounded-lg w-full "
-        onClick={createRoom}
-      >
+        onClick={createRoom}>
         Create Room
       </button>
 
