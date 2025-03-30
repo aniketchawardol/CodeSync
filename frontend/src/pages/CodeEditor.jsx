@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import isEqual from "lodash.isequal"; // Import lodash for deep comparison
 
 const socket = io("http://localhost:3000");
 
@@ -80,40 +81,43 @@ function CodeEditor() {
     };
 
     const handleFolderUpdated = (updatedFolder) => {
-      if (
-        JSON.stringify(prevFolder.current) !== JSON.stringify(updatedFolder)
-      ) {
+      if (!isEqual(prevFolder.current, updatedFolder)) {
+
+        
         setFolder(updatedFolder);
-
-
-        // 🔹 Recursively find the active file and update content
+    
         if (activeFile) {
-          const pathParts = activeFile.split("/"); // Convert path to array
-
+          const pathParts = activeFile.split("/");
+ 
           const getFileContent = (obj, parts) => {
-            if (parts.length === 0) return null;
-
+            if (!obj || parts.length === 0) return null;
+          
             const [currentPart, ...remainingParts] = parts;
-
-            if (remainingParts.length === 0) {
-              return obj[currentPart]?.type === "file"
-                ? obj[currentPart]
-                : null;
-            } else if (obj[currentPart]?.type === "folder") {
-              return getFileContent(obj[currentPart].children, remainingParts);
+            
+            // Ensure we are correctly accessing the folder structure
+            const currentItem = obj[currentPart]; 
+          
+            if (!currentItem) return null;
+          
+            if (remainingParts.length === 0 && currentItem.type === "file") {
+              return currentItem;
+            } else if (currentItem.type === "folder") {
+              return getFileContent(currentItem.children, remainingParts);
             }
-
+          
             return null;
           };
-
+          
+    
+          // ✅ Start from updatedFolder.src.children
           const updatedFile = getFileContent(updatedFolder, pathParts);
-
           if (updatedFile) {
             setActiveFileContent(updatedFile.content);
           }
         }
       }
     };
+    
 
     // Listen for initial folder and updates
     socket.on("initialize-folder", handleInitializeFolder);
