@@ -73,7 +73,7 @@ function SideMenu({ userName, socket, roomId }) {
       >
         <div className="w-16 px-4 py-6 h-svh">
           <span className="grid aspect-square h-10 my-2 place-content-center rounded-lg bg-gray-100 text-xs text-gray-600 cursor-pointer hover:bg-blue-200">
-            Logo
+            <img src="https://sdmntprsouthcentralus.oaiusercontent.com/files/00000000-edd0-51f7-879d-a92de18fb442/raw?se=2025-03-30T08%3A18%3A09Z&sp=r&sv=2024-08-04&sr=b&scid=5224cdb7-d1e5-51a9-86a2-9a0c2dcaff5a&skoid=7c382de0-129f-486b-9922-6e4a89c6eb7d&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2025-03-30T01%3A21%3A59Z&ske=2025-03-31T01%3A21%3A59Z&sks=b&skv=2024-08-04&sig=Dd64RMZqFZVSsyGqUpzBiP30DhmdaPvD9C/upc45zn4%3D" alt="" />
           </span>
 
           <span
