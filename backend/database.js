@@ -1,20 +1,52 @@
 import mongoose from "mongoose";
-const Schema = mongoose.Schema;
 
-const userSchema = new Schema({
+const userSchema = new mongoose.Schema(
+  {
     name: {
-        type: String,
-        required: true
+      type: String,
+      required: true,
     },
     email: {
-        type: String,
-        required: true
+      type: String,
+      required: true,
+      unique: true,
     },
-    url: {
-        type: String,
-    }
-}, { timestamps: true });
+  },
+  { timestamps: true }
+);
 
-const User = mongoose.model('User', userSchema);
+const roomSchema = new mongoose.Schema(
+  {
+    roomId: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    createdBy: {
+      type: String,
+      required: true,
+    },
+    folder: {
+      type: Object,
+      default: {
+        src: {
+          type: "folder",
+          children: {
+            "index.js": {
+              type: "file",
+              content: "// Welcome to CodeSathi",
+              language: "javascript",
+              status: "unchanged",
+            },
+          },
+        },
+      },
+    },
+  },
+  { timestamps: true }
+);
 
-export default User;
+const User = mongoose.model("User", userSchema);
+const Room = mongoose.model("Room", roomSchema);
+
+export {User,Room};
