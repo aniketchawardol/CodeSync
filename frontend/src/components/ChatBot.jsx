@@ -61,6 +61,9 @@ const Chatbot = ({wdth}) => {
           onChange={(e) => setInput(e.target.value)}
           className="flex-1 border border-gray-300 p-2 rounded-lg"
           placeholder="Type your message..."
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleSend();
+          }}
         />
         <button
           onClick={handleSend}

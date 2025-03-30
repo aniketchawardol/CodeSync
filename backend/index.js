@@ -140,6 +140,10 @@ io.on("connection", (socket) => {
     socket.to(roomId).emit("cursor-update", { userName, cursorPosition });
   });
 
+  socket.on("chat-send", ({ roomId, userName, text }) => {
+    socket.to(roomId).emit("receive-chat", { userName, text });
+  });
+
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });
