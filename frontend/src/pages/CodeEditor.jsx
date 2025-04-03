@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import isEqual from "lodash.isequal"; // Import lodash for deep comparison
 
-const socket = io("http://localhost:3000");
+const socket = io("https://codesarthi.onrender.com/")
 
 function CodeEditor() {
   const location = useLocation();

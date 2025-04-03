@@ -36,7 +36,7 @@ const Admin = () => {
       };
   
       // Step 1: Create a new room entry in the database
-      const roomResponse = await fetch("http://localhost:3000/api/room", {
+      const roomResponse = await fetch("https://codesarthi.onrender.com/api/room", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -82,7 +82,7 @@ const Admin = () => {
   const handleUserLoginOrSignup = async (name, email) => {
     try {
       // Call the backend API
-      const response = await fetch("http://localhost:3000/api/user", {
+      const response = await fetch("https://codesarthi.onrender.com/api/user", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
