@@ -21,7 +21,9 @@ import {
 } from "lucide-react";
 import isEqual from "lodash.isequal"; // Import lodash for deep comparison
 
-const socket = io("https://codesarthi.onrender.com/")
+const socket = io("https://codesarthi.onrender.com/",
+  {transports: ["websocket"],}
+)
 
 function CodeEditor() {
   const location = useLocation();
@@ -325,6 +327,15 @@ function CodeEditor() {
         language = "html";
       } else if (["css"].includes(extension)) {
         language = "css";
+      }
+      else if (["cpp"].includes(extension)) {
+        language = "cpp";
+      }
+      else if (["py"].includes(extension)) {
+        language = "python";
+      }
+      else if (["c"].includes(extension)) {
+        language = "c";
       }
 
       currentLevel[finalName] = {
