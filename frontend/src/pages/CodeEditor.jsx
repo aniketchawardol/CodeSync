@@ -78,7 +78,7 @@ function CodeEditor() {
       "cursor-update",
       ({ userName: remoteUserName, cursorPosition, activeFile: active }) => {
         // Only update if the cursor update is from another user
-        if (remoteUserName !== userName && active === actvieFile) {
+        if (remoteUserName !== userName && active === activeFile) {
           setCursors((prev) => ({
             ...prev,
             [remoteUserName]: cursorPosition,
@@ -567,17 +567,21 @@ function CodeEditor() {
     editorRef.current = editor;
 
     editor.onDidChangeCursorPosition((e) => {
-      const cursorPosition = {
-        line: e.position.lineNumber,
-        column: e.position.column,
-        top: editor.getTopForLineNumber(e.position.lineNumber),
-        left: editor.getOffsetForColumn(
-          e.position.lineNumber,
-          e.position.column
-        ),
-      };
+      if (!isExternalChange) {
+        // Only emit if it's an internal change
+        const cursorPosition = {
+          line: e.position.lineNumber,
+          column: e.position.column,
+          top: editor.getTopForLineNumber(e.position.lineNumber),
+          left: editor.getOffsetForColumn(
+            e.position.lineNumber,
+            e.position.column
+          ),
+        };
 
-      socket.emit("cursor-update", { roomId, userName, cursorPosition, activeFile });
+        // Emit cursor position to others
+        socket.emit("cursor-update", { roomId, userName, cursorPosition, activeFile });
+      }
     });
   };
 
