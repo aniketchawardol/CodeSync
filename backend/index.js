@@ -136,12 +136,8 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("chat-send", ({ roomId, userName, text }) => {
-    socket.to(roomId).emit("receive-chat", { userName, text });
-  });
-
-  socket.on("cursor-update", ({ roomId, userName, cursorPosition }) => {
-    socket.to(roomId).emit("cursor-update", { userName, cursorPosition });
+  socket.on("cursor-update", ({ roomId, userName, cursorPosition, activeFile}) => {
+    socket.to(roomId).emit("cursor-update", { userName, cursorPosition, activeFile });
   });
 
   socket.on("chat-send", ({ roomId, userName, text }) => {
