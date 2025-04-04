@@ -52,14 +52,13 @@ function CodeEditor() {
   const [newItemName, setNewItemName] = useState("");
   const newItemInputRef = useRef(null);
   const prevFolder = useRef(folder);
+  const activeFileRef = useRef(null);
 
   useEffect(() => {
-    if (
-      folder &&
-      JSON.stringify(folder) !== JSON.stringify(prevFolder.current)
-    ) {
+    if (folder && !isEqual(folder, prevFolder.current)) {
       if (socket) {
         // Emit update to server
+        console.log("Emitting folder update:", folder);
         socket.emit("update-folder", {
           roomId,
           updatedFolder: folder,
@@ -82,42 +81,42 @@ function CodeEditor() {
 
     const handleFolderUpdated = (updatedFolder) => {
       if (!isEqual(prevFolder.current, updatedFolder)) {
-
-        
+        console.log("Received folder:", updatedFolder);
         setFolder(updatedFolder);
-    
-        if (activeFile) {
-          const pathParts = activeFile.split("/");
- 
+
+        if (activeFileRef.current) {
+          console.log("Received folder @@@@@:", updatedFolder);
+          const pathParts = activeFileRef.current.split("/");
+
           const getFileContent = (obj, parts) => {
             if (!obj || parts.length === 0) return null;
-          
+
             const [currentPart, ...remainingParts] = parts;
-            
+
             // Ensure we are correctly accessing the folder structure
-            const currentItem = obj[currentPart]; 
-          
+            const currentItem = obj[currentPart];
+
             if (!currentItem) return null;
-          
+
             if (remainingParts.length === 0 && currentItem.type === "file") {
               return currentItem;
             } else if (currentItem.type === "folder") {
               return getFileContent(currentItem.children, remainingParts);
             }
-          
+
             return null;
           };
-          
-    
+
           // ✅ Start from updatedFolder.src.children
           const updatedFile = getFileContent(updatedFolder, pathParts);
           if (updatedFile) {
+            console.log("Updated file content:", updatedFile.content);
             setActiveFileContent(updatedFile.content);
+           
           }
         }
       }
     };
-    
 
     // Listen for initial folder and updates
     socket.on("initialize-folder", handleInitializeFolder);
@@ -171,7 +170,9 @@ function CodeEditor() {
     });
   };
 
-  const handleFileClick = (fileName, filePath, content, language) => {
+  const handleFileClick =  (e, fileName, filePath, content, language) => {
+    e.stopPropagation(); // Stop event from bubbling up
+    console.log("File clicked:", filePath); // Debug log
     // Determine language if not provided
     if (!language) {
       const extension = fileName.split(".").pop().toLowerCase();
@@ -187,8 +188,10 @@ function CodeEditor() {
       }
     }
     setActiveFile(filePath);
+    activeFileRef.current = filePath;
     setActiveFileContent(content || "");
     setActiveFileLanguage(language);
+
   };
 
   const handleDeleteClick = (e, path, isFolder) => {
@@ -220,7 +223,6 @@ function CodeEditor() {
       delete currentLevel[itemName];
 
       setFolder(newFiles);
-     
     }
   };
 
@@ -302,7 +304,6 @@ function CodeEditor() {
     }
 
     setFolder(newFiles);
-   
 
     // If it's a folder, expand it
     if (newItemType === "folder") {
@@ -488,8 +489,8 @@ function CodeEditor() {
               isActive ? "bg-gray-700 border-l-2 border-blue-400" : ""
             }`}
             style={{ paddingLeft: `${level * 16}px` }}
-            onClick={() =>
-              handleFileClick(name, currentPath, content, language)
+            onClick={(e) =>
+              handleFileClick(e, name, currentPath, content, language)
             }
           >
             {getFileIcon(name)}
@@ -595,6 +596,7 @@ function CodeEditor() {
 
       return updatedFolder;
     });
+    console.log("Updating file content:", folder);
   };
 
   const handleRunCode = async () => {
