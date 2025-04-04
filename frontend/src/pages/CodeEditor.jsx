@@ -25,7 +25,7 @@ const socket = io("https://codesarthi.onrender.com/")
 
 function CodeEditor() {
   const location = useLocation();
-
+  let isExternalChange = false;
   const [folder, setFolder] = useState(location.state?.folder || null);
 
   const [activeFile, setActiveFile] = useState(null);
@@ -71,6 +71,35 @@ function CodeEditor() {
   useEffect(() => {
     // Join room
     socket.emit("join-room", roomId);
+    
+    const cursorTimers = {};
+
+    socket.on(
+      "cursor-update",
+      ({ userName: remoteUserName, cursorPosition, activeFile: active }) => {
+        // Only update if the cursor update is from another user
+        if (remoteUserName !== userName && active === actvieFile) {
+          setCursors((prev) => ({
+            ...prev,
+            [remoteUserName]: cursorPosition,
+          }));
+
+          // Clear existing timeout if user moves again
+          if (cursorTimers[remoteUserName]) {
+            clearTimeout(cursorTimers[remoteUserName]);
+          }
+
+          // Set a new timeout to remove cursor after 5s
+          cursorTimers[remoteUserName] = setTimeout(() => {
+            setCursors((prev) => {
+              const updatedCursors = { ...prev };
+              delete updatedCursors[remoteUserName];
+              return updatedCursors;
+            });
+          }, 5000); // 5 seconds delay
+        }
+      }
+    );
 
     // Define event handlers
     const handleInitializeFolder = (receivedFolder) => {
@@ -83,7 +112,7 @@ function CodeEditor() {
       if (!isEqual(prevFolder.current, updatedFolder)) {
         console.log("Received folder:", updatedFolder);
         setFolder(updatedFolder);
-
+        isExternalChange = true;
         if (activeFileRef.current) {
           console.log("Received folder @@@@@:", updatedFolder);
           const pathParts = activeFileRef.current.split("/");
@@ -103,7 +132,7 @@ function CodeEditor() {
             } else if (currentItem.type === "folder") {
               return getFileContent(currentItem.children, remainingParts);
             }
-
+            isExternalChange = false;
             return null;
           };
 
@@ -126,6 +155,9 @@ function CodeEditor() {
     return () => {
       socket.off("initialize-folder", handleInitializeFolder);
       socket.off("folder-updated", handleFolderUpdated);
+      socket.off("cursor-update");
+           // Clear all timeouts when unmounting
+     Object.values(cursorTimers).forEach(clearTimeout);
     };
   }, [roomId, socket]); // Ensure socket is in dependency array
 
@@ -545,7 +577,7 @@ function CodeEditor() {
         ),
       };
 
-      socket.emit("cursor-update", { roomId, userName, cursorPosition });
+      socket.emit("cursor-update", { roomId, userName, cursorPosition, activeFile });
     });
   };
 
