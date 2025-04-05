@@ -3,7 +3,7 @@ const RAPIDAPI_KEY = import.meta.env.VITE_RAPIDAPI_KEY;
 // Replace Buffer-based code with browser-native functions
 const base64Encode = (str) => {
   try {
-    return window.btoa(unescape(encodeURIComponent(str || '')))
+    return window.btoa((encodeURIComponent(str || '')))
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
       .replace(/=+$/, '');

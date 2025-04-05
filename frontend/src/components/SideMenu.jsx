@@ -2,15 +2,38 @@ import { useState, useRef, useEffect } from "react";
 import clsx from "clsx";
 import Chatbot from "./ChatBot";
 import Chats from "./Chats";
-import { Stars, MessageCircle } from "lucide-react";
+import { Stars, MessageCircle, Users, Link, Check } from "lucide-react";
+import { useAuth0 } from "@auth0/auth0-react";
 
 function SideMenu({ userName, socket, roomId }) {
-  const [clicked, setClicked] = useState(false);
-  const [option, setOption] = useState("None");
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeOption, setActiveOption] = useState("None");
   const [sidebarWidth, setSidebarWidth] = useState(88 * 4);
   const [isResizing, setIsResizing] = useState(false);
   const [messages, setMessages] = useState([]);
   const sidebarRef = useRef(null);
+  const { user } = useAuth0();
+  const [profilePic, setProfilePic] = useState(user?.picture);
+  const [connectedUsers, setConnectedUsers] = useState([]);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (user?.picture) {
+      setProfilePic(user.picture);
+    }
+  }, [user?.picture]);
+
+  useEffect(() => {
+    socket.on("updateUserList", (userList) => {
+      console.log("Setting up updateUserList listener", socket?.id);
+      setConnectedUsers(userList);
+    });
+
+    return () => {
+      socket.off("updateUserList");
+    };
+  }, [socket, userName]);
+
   useEffect(() => {
     const handleReceiveChat = ({ userName: senderName, text }) => {
       console.log("Received chat:", text, senderName);
@@ -27,23 +50,36 @@ function SideMenu({ userName, socket, roomId }) {
     };
   }, [socket, userName]);
 
-  function handleClick(e) {
-    setClicked((clicked) => {
-      return !clicked;
-    });
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(roomId)
+      .then(() => {
+        setCopied(true);
+        // Reset the "Copied!" message after 2 seconds
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(err => {
+        console.error('Failed to copy: ', err);
+      });
+  };
 
-    if (!clicked) {
-      setTimeout(() => {
-        setOption(e);
-      }, 500);
+
+  function handleSectionClick(section) {
+    if (activeOption === section) {
+      // If clicking the same section, close sidebar
+      setIsOpen(false);
+      setActiveOption("None");
     } else {
-      setSidebarWidth(88 * 4);
-      setOption("None");
+      // If sidebar is closed, open it
+      if (!isOpen) {
+        setIsOpen(true);
+      }
+      // Always update the active section
+      setActiveOption(section);
     }
   }
 
   function handleMouseDown(e) {
-    if (!clicked) return;
+    if (!isOpen) return;
     setIsResizing(true);
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
@@ -51,7 +87,8 @@ function SideMenu({ userName, socket, roomId }) {
 
   function handleMouseMove(e) {
     const newWidth = e.x;
-    if (newWidth > 88 * 4 && newWidth < 660) { // Min and max width
+    if (newWidth > 88 * 4 && newWidth < 660) {
+      // Min and max width
       setSidebarWidth(newWidth);
     }
   }
@@ -65,56 +102,81 @@ function SideMenu({ userName, socket, roomId }) {
     <div className="flex flex-col">
       <div
         ref={sidebarRef}
-        className={clsx(
-          " flex h-full w-16 justify-between border-e bg-white ",
-          { "transition-all duration-300": !isResizing }
-        )}
-        style={clicked ? { width: sidebarWidth } : { width: 64 }}
+        className={clsx("flex h-full justify-between backdrop-blur-[2px]", {
+          "transition-all duration-300 ease-in-out": !isResizing,
+        })}
+        style={isOpen ? { width: sidebarWidth } : { width: 64 }}
       >
-        <div className="w-16 px-4 py-6 h-svh">
-          <span className="grid aspect-square h-10 my-2 place-content-center rounded-lg bg-gray-100 text-xs text-gray-600 cursor-pointer hover:bg-blue-200">
-            <img src="https://sdmntprsouthcentralus.oaiusercontent.com/files/00000000-edd0-51f7-879d-a92de18fb442/raw?se=2025-03-30T08%3A18%3A09Z&sp=r&sv=2024-08-04&sr=b&scid=5224cdb7-d1e5-51a9-86a2-9a0c2dcaff5a&skoid=7c382de0-129f-486b-9922-6e4a89c6eb7d&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2025-03-30T01%3A21%3A59Z&ske=2025-03-31T01%3A21%3A59Z&sks=b&skv=2024-08-04&sig=Dd64RMZqFZVSsyGqUpzBiP30DhmdaPvD9C/upc45zn4%3D" alt="" />
+        <div className="w-16 px-2 py-6 h-svh flex flex-col items-center">
+          <span
+            title="Logo"
+            onClick={() => handleSectionClick("Users")}
+            className={clsx(
+              "grid aspect-square h-12 my-2 place-content-center rounded-xl shadow-sm hover:shadow-md transition-all duration-200 text-xs cursor-pointer",
+              activeOption === "Users"
+                ? "bg-white/15 text-white"
+                : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
+            )}
+          >
+            <Users className={clsx(activeOption === "Users" ? "fill-white" : "")} />
           </span>
 
           <span
-            onClick={(e) => {
-              handleClick("AI");
-            }}
-            className="grid aspect-square h-10 place-content-center rounded-lg bg-gray-100 text-xs text-gray-600 cursor-pointer hover:bg-blue-200"
-            style={option == "AI" ? { backgroundColor: "#8cb4ff" } : null}
+            title="AI"
+            onClick={() => handleSectionClick("AI")}
+            className={clsx(
+              "grid aspect-square h-12 place-content-center rounded-xl shadow-sm hover:shadow-md transition-all duration-200 text-xs cursor-pointer",
+              activeOption === "AI"
+                ? "bg-white/15 text-white"
+                : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
+            )}
           >
-            <Stars />
+            <Stars className={clsx("w-5 h-5", activeOption === "AI" ? "fill-white" : "")} />
           </span>
 
           <span
-            onClick={() => {
-              handleClick("Chat");
-            }}
-            className="mt-2 grid aspect-square h-10 place-content-center rounded-lg bg-gray-100 text-xs text-gray-600 cursor-pointer hover:bg-blue-200"
-            style={option=="Chat" ? {backgroundColor: "#8cb4ff"} : null}
+            title="Chat"
+            onClick={() => handleSectionClick("Chat")}
+            className={clsx(
+              "mt-2 grid aspect-square h-12 place-content-center rounded-xl shadow-sm hover:shadow-md transition-all duration-200 text-xs cursor-pointer",
+              activeOption === "Chat"
+                ? "bg-white/15 text-white"
+                : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
+            )}
           >
-            <MessageCircle/>
+            <MessageCircle className={clsx("w-5 h-5", activeOption === "Chat" ? "fill-white" : "")} />
           </span>
 
-          <div className="absolute inset-x-0 bottom-0 w-fit border-t border-gray-100 bg-white">
-            <a
-              href="#"
-              className="flex items-center gap-3 p-2 h-18 hover:bg-gray-50"
-            >
-              <img
-                alt="Profile"
-                src="https://imgs.search.brave.com/LDwOkxgcaKvNTB3Vec9RONC9VujRf4rLOs05AS7i0jw/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tZWRp/YS5pc3RvY2twaG90/by5jb20vaWQvOTE2/MjY0ODcvcGhvdG8v/ZnVubnkta2l0dGVu/LmpwZz9zPTYxMng2/MTImdz0wJms9MjAm/Yz05RnR1X3JOUXBm/V2hZa21RenZDMnhf/LXlHS2hvSm16VUJl/bU00QWxhV1l3PQ"
-                className="h-10 w-10 rounded-full object-cover"
-              />
-            </a>
+          <span
+            className={clsx(
+              "bg-white/5 text-white mt-2 absolute bottom-17 grid aspect-square h-12 place-content-center rounded-xl shadow-sm hover:shadow-md transition-all duration-200 text-xs cursor-pointer",
+            )}
+          >
+            <button
+            title="Copy Room ID"
+          onClick={copyToClipboard}
+          className="copy-button "
+        >
+          {copied ? <Check /> : <Link/>}
+        </button>
+          </span>
+          
+
+          <div className="absolute inset-x-0 p-3 bottom-0 w-fit backdrop-blur-[2px]">
+            <img
+              alt="Profile"
+              src={user?.picture}
+              className="h-10 w-10 gap-3 rounded-full object-cover ring-1 ring-white/20 shadow-md opacity-80 hover:opacity-100 transition-opacity"
+              crossOrigin="anonymous"
+            />
           </div>
         </div>
 
         <div className="z-10">
-          {option === "AI" && <Chatbot wdth={sidebarWidth - 80} />}
+          {activeOption === "AI" && <Chatbot wdth={sidebarWidth - 80} />}
         </div>
         <div className="z-10">
-          {option === "Chat" && (
+          {activeOption === "Chat" && (
             <Chats
               wdth={sidebarWidth - 80}
               userName={userName}
@@ -126,11 +188,26 @@ function SideMenu({ userName, socket, roomId }) {
           )}
         </div>
 
+        <div className="z-10">
+          {activeOption === "Users" && (
+            <div className="p-4 bg-gray-800 text-white h-full w-full">
+              <h2 className="text-xl font-bold mb-2">Connected Users</h2>
+              <ul>
+                {connectedUsers.map((user, index) => (
+                  <li key={index} className="py-1">
+                    🟢 {user}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
         <div
-          className="relative top-0 right-0 h-full w-2 cursor-ew-resize bg-gray-300"
+          className="relative top-0 right-0 h-full w-1 cursor-ew-resize bg-white/5 hover:bg-white/10 transition-colors duration-200"
           onMouseDown={handleMouseDown}
-        ></div>
-      </div>
+          ></div>
+          </div>
     </div>
   );
 }

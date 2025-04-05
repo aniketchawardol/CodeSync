@@ -53,6 +53,14 @@ function CodeEditor() {
   const newItemInputRef = useRef(null);
   const prevFolder = useRef(folder);
 
+  const [isIOSectionCollapsed, setIsIOSectionCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (userName) {
+      socket.emit("userJoined", userName);
+    }
+  }, [userName, socket]);
+
   useEffect(() => {
     if (
       folder &&
@@ -82,33 +90,30 @@ function CodeEditor() {
 
     const handleFolderUpdated = (updatedFolder) => {
       if (!isEqual(prevFolder.current, updatedFolder)) {
-
-        
         setFolder(updatedFolder);
-    
+
         if (activeFile) {
           const pathParts = activeFile.split("/");
- 
+
           const getFileContent = (obj, parts) => {
             if (!obj || parts.length === 0) return null;
-          
+
             const [currentPart, ...remainingParts] = parts;
-            
+
             // Ensure we are correctly accessing the folder structure
-            const currentItem = obj[currentPart]; 
-          
+            const currentItem = obj[currentPart];
+
             if (!currentItem) return null;
-          
+
             if (remainingParts.length === 0 && currentItem.type === "file") {
               return currentItem;
             } else if (currentItem.type === "folder") {
               return getFileContent(currentItem.children, remainingParts);
             }
-          
+
             return null;
           };
-          
-    
+
           // ✅ Start from updatedFolder.src.children
           const updatedFile = getFileContent(updatedFolder, pathParts);
           if (updatedFile) {
@@ -117,7 +122,6 @@ function CodeEditor() {
         }
       }
     };
-    
 
     // Listen for initial folder and updates
     socket.on("initialize-folder", handleInitializeFolder);
@@ -220,7 +224,6 @@ function CodeEditor() {
       delete currentLevel[itemName];
 
       setFolder(newFiles);
-     
     }
   };
 
@@ -302,7 +305,6 @@ function CodeEditor() {
     }
 
     setFolder(newFiles);
-   
 
     // If it's a folder, expand it
     if (newItemType === "folder") {
@@ -634,9 +636,10 @@ function CodeEditor() {
     <>
       <div className="h-screen w-full flex flex-col md:flex-row overflow-hidden">
         <SideMenu userName={userName} socket={socket} roomId={roomId} />
+        
         {/* FileSystem */}
         <div
-          className={`bg-gray-800 text-gray-200 rounded-md p-2 font-sans text-sm h-full overflow-y-auto shadow-md transition-all duration-300 ${
+          className={`bg-gray-800 text-gray-200 rounded-md p-7 font-sans text-sm h-full overflow-y-auto shadow-md transition-all duration-300 ${
             isCollapsed ? "w-12" : "w-64 min-w-64"
           } flex flex-col relative`}
         >
@@ -681,9 +684,13 @@ function CodeEditor() {
             </div>
           )}
         </div>
-        {/* FileSystem */}
 
-        <div className="md:w-3/5 w-fit" style={{ position: "relative" }}>
+        {/* Editor Section - Adjusted width calculations */}
+        <div
+          className={`transition-all duration-300 flex-1 relative ${
+            isIOSectionCollapsed ? "md:pr-4" : "md:pr-[420px]"
+          }`}
+        >
           <div className="flex items-center mx-5 my-5">
             {activeFile && (
               <div className="text-white bg-gray-700 px-3 py-1 rounded-lg flex items-center">
@@ -693,22 +700,24 @@ function CodeEditor() {
             )}
           </div>
 
-          <Editor
-            theme="vs-dark"
-            height="75vh"
-            width="100%"
-            className="mx-5 rounded-lg"
-            language={getEditorLanguage()}
-            value={activeFile ? activeFileContent : "Welcome To CodeSathi"}
-            onChange={handleCodeChange}
-            onMount={handleEditorDidMount}
-            options={{
-              minimap: { enabled: true },
-              scrollBeyondLastLine: false,
-              fontFamily: "monospace",
-              fontSize: 14,
-            }}
-          />
+          <div className="mx-5">
+            <Editor
+              theme="vs-dark"
+              height="75vh"
+              width="100%"
+              className="rounded-lg"
+              language={getEditorLanguage()}
+              value={activeFile ? activeFileContent : "Welcome To CodeSathi"}
+              onChange={handleCodeChange}
+              onMount={handleEditorDidMount}
+              options={{
+                minimap: { enabled: true },
+                scrollBeyondLastLine: false,
+                fontFamily: "monospace",
+                fontSize: 14,
+              }}
+            />
+          </div>
 
           {/* Cursor indicators */}
           {Object.entries(cursors).map(([user, position]) => {
@@ -756,42 +765,81 @@ function CodeEditor() {
           })}
         </div>
 
-        <div className="md:w-2/5 w-full flex flex-col items-center justify-center mt-5 md:mt-0">
-          <textarea
-            className="bg-white border border-gray-300 rounded-lg p-2 w-11/12"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Input"
-            rows={3}
-          />
-
+        {/* Input/Output Section - Fixed positioning */}
+        <div className="flex h-full fixed right-0 top-0 bottom-0">
+          {/* Toggle Button */}
           <button
-            onClick={handleRunCode}
-            disabled={isLoading}
-            className="bg-blue-500 text-white m-2 p-2 rounded-lg hover:bg-blue-700"
-          >
-            {isLoading ? "Running..." : "Run Code"}
-          </button>
-
-          <textarea
-            className="bg-gray-100 border border-gray-300 rounded-lg p-2 mt-4 w-11/12"
-            placeholder="Output"
-            rows={13}
-            id="output"
-            value={output}
-            readOnly
-          ></textarea>
-
-          <div
-            className="flex flex-col items-end w-full mr-10"
-            onClick={() => {
-              socket.disconnect();
-              navigate("/");
-            }}
-          >
-            <button className="bg-red-500 p-2 m-2 rounded-lg w-20 text-white">
-              Leave
+              onClick={() => setIsIOSectionCollapsed(!isIOSectionCollapsed)}
+              className="absolute -left-10 top-3 z-50 w-8 h-8 bg-gray-800 text-white hover:bg-gray-700 flex items-center justify-center rounded-l-md shadow-lg"
+              title={
+                isIOSectionCollapsed ? "Show Input/Output" : "Hide Input/Output"
+              }
+            >
+              {isIOSectionCollapsed ? (
+                <ChevronLeft size={16} />
+              ) : (
+                <ChevronRight size={16} />
+              )}
             </button>
+          {/* Content Section */}
+          <div
+            className={`bg-gray-800 text-gray-200 rounded-l-md font-sans text-sm h-full shadow-md transition-all duration-300 flex flex-col ${
+              isIOSectionCollapsed
+                ? "w-0 md:w-0 opacity-0 overflow-hidden"
+                : "w-full md:w-[400px] opacity-100"
+            }`}
+          >
+            
+            {/* Header */}
+            <div className="flex items-center p-3 border-b border-gray-700">
+              <h3 className="font-bold text-white">Input/Output</h3>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-4  space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm text-gray-400">Input</label>
+                <textarea
+                  className="w-full bg-gray-700 border mt-2 border-gray-600 rounded-lg p-2 text-gray-100 focus:outline-none focus:border-blue-500"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Enter input here..."
+                  rows={3}
+                />
+              </div>
+
+              <button
+                onClick={handleRunCode}
+                disabled={isLoading}
+                className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? "Running..." : "Run Code"}
+              </button>
+
+              <div className="space-y-2">
+                <label className="text-sm text-gray-400">Output</label>
+                <textarea
+                  className="w-full bg-gray-700 border mt-2 border-gray-600 rounded-lg p-2 text-gray-100 focus:outline-none focus:border-blue-500"
+                  placeholder="Output will appear here..."
+                  rows={13}
+                  id="output"
+                  value={output}
+                  readOnly
+                />
+              </div>
+
+              <div className="pt-4">
+                <button
+                  onClick={() => {
+                    socket.disconnect();
+                    navigate("/");
+                  }}
+                  className="absolute bottom-10 right-4  bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 transition-colors"
+                >
+                  Leave Room
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
