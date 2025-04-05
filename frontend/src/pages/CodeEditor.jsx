@@ -656,14 +656,29 @@ function CodeEditor() {
   };
 
   const handleRunCode = async () => {
+    let languageID;
+    if(activeFileLanguage === "javascript") {
+      languageID = 63; // JavaScript
+    }
+    else if(activeFileLanguage === "python") {
+      languageID = 71; // Python
+    }
+    else if(activeFileLanguage === "cpp") {
+      languageID = 54; // C++
+    }
+    else if(activeFileLanguage === "c") {
+      languageID = 50; // C
+    }
+
+    
     setIsLoading(true);
     try {
       const result = await evaluateCode({
         code: activeFile ? activeFileContent : code,
-        languageId: activeFileLanguage,
+        languageId: languageID,
         stdin: input,
       });
-
+      console.log("Result:", result);
       setOutput(result.stdout || result.stderr || result.message);
     } catch (error) {
       setOutput(`Error: ${error.message}`);
