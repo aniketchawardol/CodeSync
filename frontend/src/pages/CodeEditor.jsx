@@ -79,7 +79,6 @@ function CodeEditor() {
     socket.on(
       "cursor-update",
       ({ userName: remoteUserName, cursorPosition, activeFile: active }) => {
-        // Only update if the cursor update is from another user
         if (remoteUserName !== userName && active === activeFileRef.current) {
           setCursors((prev) => ({
             ...prev,
@@ -141,7 +140,6 @@ function CodeEditor() {
           // ✅ Start from updatedFolder.src.children
           const updatedFile = getFileContent(updatedFolder, pathParts);
           if (updatedFile) {
-            console.log("Updated file content:", updatedFile.content);
             setActiveFileContent(updatedFile.content);
            
           }
@@ -600,7 +598,7 @@ function CodeEditor() {
         };
 
         // Emit cursor position to others
-        socket.emit("cursor-update", { roomId, userName, cursorPosition, activeFile });
+        socket.emit("cursor-update", { roomId, userName, cursorPosition, activeFile: activeFileRef.current });
       }
     });
   };
@@ -808,7 +806,7 @@ function CodeEditor() {
                   style={{
                     position: "absolute",
                     top: `${position.top + editorRect.top}px`,
-                    left: `${position.left + editorRect.left - 200}px`,
+                    left: `${position.left + editorRect.left - 254}px`,
                     backgroundColor: "rgba(255, 0, 0, 0.7)",
                     width: "2px",
                     height: "18px",
