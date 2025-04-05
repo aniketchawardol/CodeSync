@@ -1,3 +1,23 @@
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* If you're using a container div for your entire app, add this */
+.app-container {
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.gradient{
+  background: radial-gradient(600px at 935px 245px, rgba(29, 78, 216, 0.15), transparent 80%)
+}
+
+
 .file-explorer {
     width: 250px;
     height: 100%;

@@ -8,6 +8,8 @@ import { User, Room } from "./database.js";
 import { v4 as uuidv4 } from "uuid";
 import "dotenv/config";
 
+const users = {}; 
+
 const app = express();
 app.use(express.json());
 const server = http.createServer(app);
@@ -83,6 +85,17 @@ app.get("/api/user/:email", async (req, res) => {
   }
 });
 
+app.get("/api/room/user/:email", async (req, res) => {
+  try {
+    const { email } = req.params;
+    const rooms = await Room.find({ createdBy: email }).sort({ createdAt: -1 });
+    res.status(200).json({ rooms });
+  } catch (error) {
+    console.error("Error fetching user rooms:", error);
+    res.status(500).json({ error: "Failed to fetch user rooms" });
+  }
+});
+
 // ✅ SOCKET.IO CONFIGURATION
 const io = new Server(server, { 
   cors: { origin: "*", methods: ["GET", "POST"] },
@@ -144,8 +157,22 @@ io.on("connection", (socket) => {
     socket.to(roomId).emit("receive-chat", { userName, text });
   });
 
+  socket.on("userJoined", (username) => {
+    users[socket.id] = username;
+    io.emit("updateUserList", Object.values(users)); // Send updated list to all clients
+  });
+
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
+    
+    // Check if this socket ID is in the users object
+    if (users[socket.id]) {
+      // Remove the user from the users object
+      delete users[socket.id];
+      
+      // Emit the updated user list to all clients
+      io.emit("updateUserList", Object.values(users));
+    }
   });
 });
 const dbURI = process.env.MONGO_URI;

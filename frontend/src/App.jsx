@@ -7,7 +7,7 @@ import {Routes, Route} from "react-router-dom";
 function App() {
   return (
     <>
-      <div className="flex flex-col items-center justify-center w-full h-lvh bg-gray-800">
+      <div className="bg-gray-800">
           <Routes>
             <Route index element={<Home />} />
             <Route path="/editor/:roomId/:userName" element={<CodeEditor/>} />

@@ -9,10 +9,12 @@ const ChatMessage = ({ message }) => {
   return (
     <div
       className={`p-2 my-1 rounded-lg w-[70%] ${
-        message.sender === "user" ? "bg-blue-500 text-white float-right" : "bg-gray-300 float-left"
+        message.sender === "user" 
+          ? "bg-blue-500/80 text-white float-right" 
+          : "bg-white/5 text-white/90 float-left"
       }`}
     >
-      <p className="text-sm font-semibold mb-1">
+      <p className="text-sm font-semibold mb-1 text-white/90">
         {message.userName}
       </p>
 
@@ -24,7 +26,7 @@ const ChatMessage = ({ message }) => {
             return !inline ? (
               <CodeBlock code={String(children)} {...props} />
             ) : (
-              <code className="bg-gray-300 p-1 rounded">{children}</code>
+              <code className="bg-white/10 text-white/90 p-1 rounded">{children}</code>
             );
           },
         }}
@@ -45,12 +47,22 @@ const CodeBlock = ({ code, ...props }) => {
 
   return (
     <div className="relative group">
-      <SyntaxHighlighter style={dracula} language="javascript" {...props}>
-        {code}
-      </SyntaxHighlighter>
+      <div className="bg-black/20 rounded-lg p-1">
+        <SyntaxHighlighter 
+          style={dracula} 
+          language="javascript" 
+          {...props}
+          customStyle={{
+            background: 'transparent',
+            padding: '1rem'
+          }}
+        >
+          {code}
+        </SyntaxHighlighter>
+      </div>
       <button
         onClick={copyToClipboard}
-        className="absolute top-2 right-2 bg-gray-700 text-white p-1 rounded hover:bg-gray-600 transition-all"
+        className="absolute top-2 right-2 bg-white/10 text-white/90 p-1 rounded hover:bg-white/20 transition-all"
       >
         {copied ? <ClipboardCheck size={18} /> : <Clipboard size={18} />}
       </button>
