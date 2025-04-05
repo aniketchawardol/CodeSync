@@ -80,7 +80,7 @@ function CodeEditor() {
       "cursor-update",
       ({ userName: remoteUserName, cursorPosition, activeFile: active }) => {
         // Only update if the cursor update is from another user
-        if (remoteUserName !== userName && active === activeFile) {
+        if (remoteUserName !== userName && active === activeFileRef.current) {
           setCursors((prev) => ({
             ...prev,
             [remoteUserName]: cursorPosition,
@@ -219,6 +219,15 @@ function CodeEditor() {
         language = "html";
       } else if (extension === "css") {
         language = "css";
+      }
+      else if(extension === "cpp") {
+        language = "cpp";
+      }
+      else if(extension === "c") {
+        language = "c";
+      }
+      else {
+        language = "plaintext"; // Default language
       }
     }
     setActiveFile(filePath);
@@ -651,7 +660,7 @@ function CodeEditor() {
     try {
       const result = await evaluateCode({
         code: activeFile ? activeFileContent : code,
-        languageId: language,
+        languageId: activeFileLanguage,
         stdin: input,
       });
 
@@ -675,6 +684,15 @@ function CodeEditor() {
         return "python";
       } else if (activeFile.endsWith(".cpp") || activeFile.endsWith(".h")) {
         return "cpp";
+      }
+      else if (activeFile.endsWith(".c")) {
+        return "c";
+      } else if (activeFile.endsWith(".html") || activeFile.endsWith(".htm")) {
+        return "html";
+      } else if (activeFile.endsWith(".css")) {
+        return "css";
+      } else {
+        return "plaintext"; // Default language
       }
     }
   };
@@ -775,7 +793,7 @@ function CodeEditor() {
                   style={{
                     position: "absolute",
                     top: `${position.top + editorRect.top}px`,
-                    left: `${position.left + editorRect.left}px`,
+                    left: `${position.left + editorRect.left - 200}px`,
                     backgroundColor: "rgba(255, 0, 0, 0.7)",
                     width: "2px",
                     height: "18px",
