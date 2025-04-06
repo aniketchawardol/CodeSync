@@ -90,7 +90,7 @@
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/yourusername/codesync.git
+   git clone https://github.com/aniketchawardol/codesync.git
    cd codesync
    ```
 
@@ -122,7 +122,7 @@
    npm run dev
 
    # Start backend (in backend directory)
-   node index.js
+   npm run dev
    ```
 
 ## 🔄 API Endpoints
