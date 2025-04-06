@@ -1,8 +1,8 @@
-# CodeSync
+# CodeSathi
 
 <div align="center">
 
-![CodeSync Logo](public/logo.png)
+![CodeSathi Logo](frontend/public/icon.png)
 
 [![React](https://img.shields.io/badge/React-18-blue?logo=react)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/Vite-Latest-646CFF?logo=vite)](https://vitejs.dev/)
@@ -163,6 +163,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
 
-Made with ❤️ by the CodeSync Team
+Made with ❤️ by the CodeSathi Team
 
 </div>
