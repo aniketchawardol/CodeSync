@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![CodeSathi Logo](pfronend/public/icon.png)
+![CodeSathi Logo](frontend/public/icon.png)
 
 [![React](https://img.shields.io/badge/React-18-blue?logo=react)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/Vite-Latest-646CFF?logo=vite)](https://vitejs.dev/)
