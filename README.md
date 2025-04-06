@@ -165,10 +165,12 @@ Made with ❤️ by the CodeSathi Team
 </div>
 
 
-<div align="center">
-## Contributors 👥 
+## 👥 Contributors  
 
+<div align="center">
 • Aniket Chawardol
+<br>
 • Suyash Patil
+<br>
 • Vishwas Kulkarni
  </div>
