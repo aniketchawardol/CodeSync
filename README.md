@@ -157,12 +157,18 @@
 </table>
 </div>
 
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 <div align="center">
 
 Made with ❤️ by the CodeSathi Team
 
 </div>
+
+
+<div align="center">
+## Contributors 👥 
+
+• Aniket Chawardol
+• Suyash Patil
+• Vishwas Kulkarni
+ </div>
