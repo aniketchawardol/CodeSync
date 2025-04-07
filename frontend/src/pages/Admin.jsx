@@ -125,7 +125,7 @@ const Admin = () => {
     try {
       // Find all rooms created by this user's email
       const response = await fetch(
-        `http://localhost:3000/api/room/user/${email}`
+        `https://codesarthi.onrender.com/api/room/user/${email}`
       );
 
       if (!response.ok) {
