@@ -3,7 +3,6 @@ import Editor from "@monaco-editor/react";
 import SideMenu from "../components/SideMenu.jsx";
 import { evaluateCode } from "../../server/api";
 import { io } from "socket.io-client";
-import { CODE_SNIPPETS, NumToLang } from "../constants.js";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import {
@@ -20,10 +19,11 @@ import {
   ChevronRight,
 } from "lucide-react";
 import isEqual from "lodash.isequal"; // Import lodash for deep comparison
+import debounce from "lodash.debounce"; // Import lodash debounce
 
-const socket = io("https://codesarthi.onrender.com/",
-  {transports: ["websocket"],}
-)
+const socket = io("https://codesarthi.onrender.com/", {
+  transports: ["websocket"],
+});
 
 function CodeEditor() {
   const location = useLocation();
@@ -42,12 +42,10 @@ function CodeEditor() {
   const navigate = useNavigate();
   const editorRef = useRef(null);
 
-  //............................States for file system......................................
   const [expanded, setExpanded] = useState({
     src: true,
   });
   const [isCollapsed, setIsCollapsed] = useState(false);
-  // State for file/folder creation
   const [showAddMenu, setShowAddMenu] = useState(null);
   const [newItemType, setNewItemType] = useState(null);
   const [newItemPath, setNewItemPath] = useState(null);
@@ -57,59 +55,80 @@ function CodeEditor() {
   const activeFileRef = useRef(null);
   const [isIOSectionCollapsed, setIsIOSectionCollapsed] = useState(false);
 
+  // Create debounced functions
+  const debouncedFolderUpdate = useCallback(
+    debounce((updatedFolder) => {
+      console.log("Emitting debounced folder update");
+      socket.emit("update-folder", {
+        roomId,
+        updatedFolder,
+      });
+    }, 500),
+    [roomId]
+  );
+
+  const debouncedCursorUpdate = useCallback(
+    debounce((cursorPosition) => {
+      socket.emit("cursor-update", {
+        roomId,
+        userName,
+        cursorPosition,
+        activeFile: activeFileRef.current,
+      });
+    }, 100),
+    [roomId, userName, activeFileRef]
+  );
+
   useEffect(() => {
     if (userName) {
       socket.emit("userJoined", userName);
     }
-  }, [userName, socket]);
+  }, [userName]);
 
   useEffect(() => {
     if (folder && !isEqual(folder, prevFolder.current)) {
-      if (socket) {
-        // Emit update to server
-        console.log("Emitting folder update:", folder);
-        socket.emit("update-folder", {
-          roomId,
-          updatedFolder: folder,
-        });
-      }
+      // Use debounced update instead of direct emit
+      debouncedFolderUpdate(folder);
       prevFolder.current = folder; // Store last folder state
     }
-  }, [folder, socket]); // Ensure socket is in dependency array
+  }, [folder, debouncedFolderUpdate]);
 
   useEffect(() => {
     // Join room
     socket.emit("join-room", roomId);
-    
+
     const cursorTimers = {};
 
-    socket.on(
-      "cursor-update",
-      ({ userName: remoteUserName, cursorPosition, activeFile: active }) => {
-        if (remoteUserName !== userName && active === activeFileRef.current) {
-          setCursors((prev) => ({
-            ...prev,
-            [remoteUserName]: cursorPosition,
-          }));
+    // Centralized event handlers
+    const handleCursorUpdate = ({
+      userName: remoteUserName,
+      cursorPosition,
+      activeFile: active,
+    }) => {
+      // Only process cursor updates from other users for the current active file
+      if (remoteUserName !== userName && active === activeFileRef.current) {
+        // Store remote cursor position for display without affecting local editor
+        setCursors((prev) => ({
+          ...prev,
+          [remoteUserName]: cursorPosition,
+        }));
 
-          // Clear existing timeout if user moves again
-          if (cursorTimers[remoteUserName]) {
-            clearTimeout(cursorTimers[remoteUserName]);
-          }
-
-          // Set a new timeout to remove cursor after 5s
-          cursorTimers[remoteUserName] = setTimeout(() => {
-            setCursors((prev) => {
-              const updatedCursors = { ...prev };
-              delete updatedCursors[remoteUserName];
-              return updatedCursors;
-            });
-          }, 5000); // 5 seconds delay
+        // Clear existing timeout if user moves again
+        if (cursorTimers[remoteUserName]) {
+          clearTimeout(cursorTimers[remoteUserName]);
         }
-      }
-    );
 
-    // Define event handlers
+        // Set a new timeout to remove cursor after 5s
+        cursorTimers[remoteUserName] = setTimeout(() => {
+          setCursors((prev) => {
+            const updatedCursors = { ...prev };
+            delete updatedCursors[remoteUserName];
+            return updatedCursors;
+          });
+        }, 5000); // 5 seconds delay
+      }
+    };
+
     const handleInitializeFolder = (receivedFolder) => {
       console.log("Received folder:", receivedFolder);
       setFolder(receivedFolder);
@@ -121,16 +140,14 @@ function CodeEditor() {
         console.log("Received folder:", updatedFolder);
         setFolder(updatedFolder);
         isExternalChange = true;
+
         if (activeFileRef.current) {
-          console.log("Received folder @@@@@:", updatedFolder);
           const pathParts = activeFileRef.current.split("/");
 
           const getFileContent = (obj, parts) => {
             if (!obj || parts.length === 0) return null;
 
             const [currentPart, ...remainingParts] = parts;
-
-            // Ensure we are correctly accessing the folder structure
             const currentItem = obj[currentPart];
 
             if (!currentItem) return null;
@@ -144,38 +161,41 @@ function CodeEditor() {
             return null;
           };
 
-          // ✅ Start from updatedFolder.src.children
           const updatedFile = getFileContent(updatedFolder, pathParts);
           if (updatedFile) {
             setActiveFileContent(updatedFile.content);
-           
           }
         }
+
+        // Reset the flag after processing
+        setTimeout(() => {
+          isExternalChange = false;
+        }, 10);
       }
     };
 
-    // Listen for initial folder and updates
+    // Setup event listeners
+    socket.on("cursor-update", handleCursorUpdate);
     socket.on("initialize-folder", handleInitializeFolder);
     socket.on("folder-updated", handleFolderUpdated);
 
-    // Cleanup on component unmount
+    // Cleanup event listeners on unmount
     return () => {
+      socket.off("cursor-update", handleCursorUpdate);
       socket.off("initialize-folder", handleInitializeFolder);
       socket.off("folder-updated", handleFolderUpdated);
-      socket.off("cursor-update");
-           // Clear all timeouts when unmounting
-     Object.values(cursorTimers).forEach(clearTimeout);
-    };
-  }, [roomId, socket]); // Ensure socket is in dependency array
 
-  // Focus on the new item input when it appears
+      // Clear all timeouts when unmounting
+      Object.values(cursorTimers).forEach(clearTimeout);
+    };
+  }, [roomId, userName]);
+
   useEffect(() => {
     if (newItemType && newItemInputRef.current) {
       newItemInputRef.current.focus();
     }
   }, [newItemType]);
 
-  // Close add menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -193,10 +213,8 @@ function CodeEditor() {
     };
   }, [showAddMenu]);
 
-  // UI Interaction handlers
   const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
-    // If collapsing and there's an open menu, close it
     if (!isCollapsed && showAddMenu) {
       setShowAddMenu(null);
     }
@@ -209,35 +227,29 @@ function CodeEditor() {
     });
   };
 
-  const handleFileClick =  (e, fileName, filePath, content, language) => {
-    e.stopPropagation(); // Stop event from bubbling up
-    console.log("File clicked:", filePath); // Debug log
-    // Determine language if not provided
-      const extension = fileName.split(".").pop().toLowerCase();
+  const handleFileClick = (e, fileName, filePath, content, language) => {
+    e.stopPropagation();
+    const extension = fileName.split(".").pop().toLowerCase();
 
-      if (["js", "jsx", "ts", "tsx"].includes(extension)) {
-        language = "javascript";
-      } else if (extension === "py") {
-        language = "python";
-      } else if (["html", "htm"].includes(extension)) {
-        language = "html";
-      } else if (extension === "css") {
-        language = "css";
-      }
-      else if(extension === "cpp") {
-        language = "cpp";
-      }
-      else if(extension === "c") {
-        language = "c";
-      }
-      else {
-        language = "plaintext"; // Default language
-      }
+    if (["js", "jsx", "ts", "tsx"].includes(extension)) {
+      language = "javascript";
+    } else if (extension === "py") {
+      language = "python";
+    } else if (["html", "htm"].includes(extension)) {
+      language = "html";
+    } else if (extension === "css") {
+      language = "css";
+    } else if (extension === "cpp") {
+      language = "cpp";
+    } else if (extension === "c") {
+      language = "c";
+    } else {
+      language = "plaintext";
+    }
     setActiveFile(filePath);
     activeFileRef.current = filePath;
     setActiveFileContent(content || "");
     setActiveFileLanguage(language);
-
   };
 
   const handleDeleteClick = (e, path, isFolder) => {
@@ -251,7 +263,6 @@ function CodeEditor() {
     ) {
       const newFiles = JSON.parse(JSON.stringify(folder));
 
-      // Find the parent folder
       const pathParts = path.split("/").filter(Boolean);
       const itemName = pathParts.pop();
 
@@ -265,7 +276,6 @@ function CodeEditor() {
         }
       }
 
-      // Delete the item
       delete currentLevel[itemName];
 
       setFolder(newFiles);
@@ -276,7 +286,6 @@ function CodeEditor() {
     e.stopPropagation();
     e.preventDefault();
 
-    // Close menu if clicking the same button again (toggle behavior)
     if (showAddMenu === path) {
       setShowAddMenu(null);
     } else {
@@ -297,15 +306,13 @@ function CodeEditor() {
       return;
     }
 
-    // For files, auto-add extension if not provided
     let finalName = newItemName.trim();
     if (newItemType === "file" && !finalName.includes(".")) {
-      finalName += ".js"; // Default extension
+      finalName += ".js";
     }
 
     const newFiles = JSON.parse(JSON.stringify(folder));
 
-    // Find the parent folder
     const pathParts = newItemPath.split("/").filter(Boolean);
     let currentLevel = newFiles;
     for (const part of pathParts) {
@@ -317,20 +324,17 @@ function CodeEditor() {
       }
     }
 
-    // Check if item with this name already exists
     if (currentLevel[finalName]) {
       alert(`A ${newItemType} with this name already exists`);
       return;
     }
 
-    // Create the new item
     if (newItemType === "folder") {
       currentLevel[finalName] = {
         type: "folder",
         children: {},
       };
     } else {
-      // Determine the language based on the file extension
       const extension = finalName.split(".").pop().toLowerCase();
       let language = "plaintext";
       if (["js", "jsx", "ts", "tsx"].includes(extension)) {
@@ -339,14 +343,11 @@ function CodeEditor() {
         language = "html";
       } else if (["css"].includes(extension)) {
         language = "css";
-      }
-      else if (["cpp"].includes(extension)) {
+      } else if (["cpp"].includes(extension)) {
         language = "cpp";
-      }
-      else if (["py"].includes(extension)) {
+      } else if (["py"].includes(extension)) {
         language = "python";
-      }
-      else if (["c"].includes(extension)) {
+      } else if (["c"].includes(extension)) {
         language = "c";
       }
 
@@ -360,7 +361,6 @@ function CodeEditor() {
 
     setFolder(newFiles);
 
-    // If it's a folder, expand it
     if (newItemType === "folder") {
       const newPath = newItemPath ? `${newItemPath}/${finalName}` : finalName;
       setExpanded({
@@ -369,7 +369,6 @@ function CodeEditor() {
       });
     }
 
-    // Reset the form
     setNewItemType(null);
     setNewItemPath(null);
   };
@@ -379,7 +378,6 @@ function CodeEditor() {
     setNewItemPath(null);
   };
 
-  // Helper functions for rendering
   const getFileIcon = (fileName) => {
     if (fileName.endsWith(".jsx"))
       return <FileCode size={16} className="text-blue-400" />;
@@ -403,7 +401,6 @@ function CodeEditor() {
     }
   };
 
-  // UI Components
   const renderAddMenu = (path) => {
     if (showAddMenu !== path) return null;
 
@@ -465,7 +462,6 @@ function CodeEditor() {
     );
   };
 
-  // Render file tree
   const renderFileTree = (tree, path = "", level = 0) => {
     if (!tree) return null;
 
@@ -505,7 +501,6 @@ function CodeEditor() {
                 />
               </div>
 
-              {/* Render add menu directly inside the folder row */}
               {showAddMenu === currentPath && (
                 <div className="absolute right-8 top-full mt-1 z-50">
                   {renderAddMenu(currentPath)}
@@ -532,7 +527,6 @@ function CodeEditor() {
           </div>
         );
       } else {
-        // It's a file
         const isActive = activeFile === currentPath;
         const { content, language, status } = item;
 
@@ -572,7 +566,6 @@ function CodeEditor() {
     setNewItemName("");
   };
 
-  // For collapsed mode actions
   const handleCollapsedAction = (action) => {
     setIsCollapsed(false);
     setTimeout(() => {
@@ -581,17 +574,15 @@ function CodeEditor() {
       } else if (action === "folder") {
         handleAddRootItem("folder");
       }
-    }, 300); // Wait for animation to complete
+    }, 300);
   };
-
-  //.............................................................................................
 
   const handleEditorDidMount = (editor) => {
     editorRef.current = editor;
 
     editor.onDidChangeCursorPosition((e) => {
+      // Only emit cursor updates for user-initiated changes
       if (!isExternalChange) {
-        // Only emit if it's an internal change
         const cursorPosition = {
           line: e.position.lineNumber,
           column: e.position.column,
@@ -603,16 +594,18 @@ function CodeEditor() {
         };
 
         // Emit cursor position to others
-        socket.emit("cursor-update", { roomId, userName, cursorPosition, activeFile: activeFileRef.current });
+        debouncedCursorUpdate(cursorPosition);
       }
     });
   };
 
-  // Handle code changes and emit updates
   const handleCodeChange = (value) => {
     if (!activeFile) return;
 
     setActiveFileContent(value);
+
+    // Skip further processing if this is triggered by remote changes
+    if (isExternalChange) return;
 
     const updateFileContent = (obj, pathParts) => {
       if (pathParts.length === 0) return obj;
@@ -643,37 +636,28 @@ function CodeEditor() {
       return obj;
     };
 
-    // Update the folder state safely
     setFolder((prevFolder) => {
-      const newFolder = JSON.parse(JSON.stringify(prevFolder)); // Deep clone
+      const newFolder = JSON.parse(JSON.stringify(prevFolder));
       const pathParts = activeFile.split("/").filter(Boolean);
 
       const updatedFolder = updateFileContent(newFolder, pathParts);
 
-      // Emit the update
-      socket.emit("update-folder", { roomId, updatedFolder });
-
       return updatedFolder;
     });
-    console.log("Updating file content:", folder);
   };
 
   const handleRunCode = async () => {
     let languageID;
-    if(activeFileLanguage === "javascript") {
-      languageID = 63; // JavaScript
-    }
-    else if(activeFileLanguage === "python") {
-      languageID = 71; // Python
-    }
-    else if(activeFileLanguage === "cpp") {
-      languageID = 54; // C++
-    }
-    else if(activeFileLanguage === "c") {
-      languageID = 50; // C
+    if (activeFileLanguage === "javascript") {
+      languageID = 63;
+    } else if (activeFileLanguage === "python") {
+      languageID = 71;
+    } else if (activeFileLanguage === "cpp") {
+      languageID = 54;
+    } else if (activeFileLanguage === "c") {
+      languageID = 50;
     }
 
-    
     setIsLoading(true);
     try {
       const result = await evaluateCode({
@@ -682,7 +666,12 @@ function CodeEditor() {
         stdin: input,
       });
       console.log("Result:", result);
-      setOutput(result.stdout || result.stderr || result.message || result.status.description);
+      setOutput(
+        result.stdout ||
+          result.stderr ||
+          result.message ||
+          result.status.description
+      );
     } catch (error) {
       setOutput(`Error: ${error.message}`);
     } finally {
@@ -690,26 +679,22 @@ function CodeEditor() {
     }
   };
 
-  // Get the appropriate language mode for Monaco
   const getEditorLanguage = () => {
     if (activeFile) {
-
-      // Determine by file extension
       if (activeFile.endsWith(".js") || activeFile.endsWith(".jsx")) {
         return "javascript";
       } else if (activeFile.endsWith(".py")) {
         return "python";
       } else if (activeFile.endsWith(".cpp") || activeFile.endsWith(".h")) {
         return "cpp";
-      }
-      else if (activeFile.endsWith(".c")) {
+      } else if (activeFile.endsWith(".c")) {
         return "c";
       } else if (activeFile.endsWith(".html") || activeFile.endsWith(".htm")) {
         return "html";
       } else if (activeFile.endsWith(".css")) {
         return "css";
       } else {
-        return "plaintext"; // Default language
+        return "plaintext";
       }
     }
   };
@@ -718,8 +703,7 @@ function CodeEditor() {
     <>
       <div className="h-screen w-full flex flex-col md:flex-row overflow-hidden">
         <SideMenu userName={userName} socket={socket} roomId={roomId} />
-        
-        {/* FileSystem */}
+
         <div
           className={`bg-gray-800 text-gray-200 rounded-md p-7 font-sans text-sm h-full overflow-y-auto shadow-md transition-all duration-300 ${
             isCollapsed ? "w-12" : "w-64 min-w-64"
@@ -767,7 +751,6 @@ function CodeEditor() {
           )}
         </div>
 
-        {/* Editor Section - Adjusted width calculations */}
         <div
           className={`transition-all duration-300 flex-1 relative ${
             isIOSectionCollapsed ? "md:pr-4" : "md:pr-[420px]"
@@ -801,7 +784,6 @@ function CodeEditor() {
             />
           </div>
 
-          {/* Cursor indicators */}
           {Object.entries(cursors).map(([user, position]) => {
             if (user !== userName && editorRef.current) {
               const editor = editorRef.current;
@@ -811,6 +793,7 @@ function CodeEditor() {
 
               const editorRect = editorDomNode.getBoundingClientRect();
 
+              // Render as absolutely positioned overlay element with no interaction with editor
               return (
                 <div
                   key={user}
@@ -821,7 +804,7 @@ function CodeEditor() {
                     backgroundColor: "rgba(255, 0, 0, 0.7)",
                     width: "2px",
                     height: "18px",
-                    pointerEvents: "none",
+                    pointerEvents: "none", // Ensure it can't receive mouse events
                     zIndex: 10,
                   }}
                 >
@@ -836,6 +819,7 @@ function CodeEditor() {
                       borderRadius: "3px",
                       fontSize: "12px",
                       whiteSpace: "nowrap",
+                      pointerEvents: "none", // Explicitly prevent pointer events
                     }}
                   >
                     {user}
@@ -847,23 +831,20 @@ function CodeEditor() {
           })}
         </div>
 
-        {/* Input/Output Section - Fixed positioning */}
         <div className="flex h-full fixed right-0 top-0 bottom-0">
-          {/* Toggle Button */}
           <button
-              onClick={() => setIsIOSectionCollapsed(!isIOSectionCollapsed)}
-              className="absolute -left-10 top-3 z-50 w-8 h-8 bg-gray-800 text-white hover:bg-gray-700 flex items-center justify-center rounded-l-md shadow-lg"
-              title={
-                isIOSectionCollapsed ? "Show Input/Output" : "Hide Input/Output"
-              }
-            >
-              {isIOSectionCollapsed ? (
-                <ChevronLeft size={16} />
-              ) : (
-                <ChevronRight size={16} />
-              )}
-            </button>
-          {/* Content Section */}
+            onClick={() => setIsIOSectionCollapsed(!isIOSectionCollapsed)}
+            className="absolute -left-10 top-3 z-50 w-8 h-8 bg-gray-800 text-white hover:bg-gray-700 flex items-center justify-center rounded-l-md shadow-lg"
+            title={
+              isIOSectionCollapsed ? "Show Input/Output" : "Hide Input/Output"
+            }
+          >
+            {isIOSectionCollapsed ? (
+              <ChevronLeft size={16} />
+            ) : (
+              <ChevronRight size={16} />
+            )}
+          </button>
           <div
             className={`bg-gray-800 text-gray-200 rounded-l-md font-sans text-sm h-full shadow-md transition-all duration-300 flex flex-col ${
               isIOSectionCollapsed
@@ -871,13 +852,10 @@ function CodeEditor() {
                 : "w-full md:w-[400px] opacity-100"
             }`}
           >
-            
-            {/* Header */}
             <div className="flex items-center p-3 border-b border-gray-700">
               <h3 className="font-bold text-white">Input/Output</h3>
             </div>
 
-            {/* Content */}
             <div className="flex-1 overflow-y-auto p-4  space-y-4">
               <div className="space-y-2">
                 <label className="text-sm text-gray-400">Input</label>
