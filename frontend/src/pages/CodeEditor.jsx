@@ -213,7 +213,6 @@ function CodeEditor() {
     e.stopPropagation(); // Stop event from bubbling up
     console.log("File clicked:", filePath); // Debug log
     // Determine language if not provided
-    if (!language) {
       const extension = fileName.split(".").pop().toLowerCase();
 
       if (["js", "jsx", "ts", "tsx"].includes(extension)) {
@@ -234,7 +233,6 @@ function CodeEditor() {
       else {
         language = "plaintext"; // Default language
       }
-    }
     setActiveFile(filePath);
     activeFileRef.current = filePath;
     setActiveFileContent(content || "");
@@ -684,7 +682,7 @@ function CodeEditor() {
         stdin: input,
       });
       console.log("Result:", result);
-      setOutput(result.stdout || result.stderr || result.message);
+      setOutput(result.stdout || result.stderr || result.message || result.status.description);
     } catch (error) {
       setOutput(`Error: ${error.message}`);
     } finally {
@@ -695,7 +693,6 @@ function CodeEditor() {
   // Get the appropriate language mode for Monaco
   const getEditorLanguage = () => {
     if (activeFile) {
-      if (activeFileLanguage) return activeFileLanguage;
 
       // Determine by file extension
       if (activeFile.endsWith(".js") || activeFile.endsWith(".jsx")) {
