@@ -75,7 +75,7 @@ function CodeEditor() {
         cursorPosition,
         activeFile: activeFileRef.current,
       });
-    }, 100),
+    }, 500),
     [roomId, userName, activeFileRef]
   );
 
