@@ -3,6 +3,7 @@
 <div align="center">
 
 ![CodeSathi Logo](frontend/public/icon.png)
+<br>
 <a href="https://codesarthi.onrender.com/">visit here</a>
 [![React](https://img.shields.io/badge/React-18-blue?logo=react)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/Vite-Latest-646CFF?logo=vite)](https://vitejs.dev/)
