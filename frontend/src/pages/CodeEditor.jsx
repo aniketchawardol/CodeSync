@@ -20,8 +20,9 @@ import {
 } from "lucide-react";
 import isEqual from "lodash.isequal"; // Import lodash for deep comparison
 import debounce from "lodash.debounce"; // Import lodash debounce
+import { API_URL } from "../config";
 
-const socket = io("https://codesarthi.onrender.com/", {
+const socket = io(API_URL, {
   transports: ["websocket"],
 });
 

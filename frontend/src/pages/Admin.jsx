@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import LoginButton from "../auth/login";
 import LogoutButton from "../auth/logout";
 import { useAuth0 } from "@auth0/auth0-react";
+import { API_URL } from "../config";
 import {
   ChevronRight,
   ChevronLeft,
@@ -52,7 +53,7 @@ const Admin = () => {
       };
 
       // Step 1: Create a new room entry in the database
-      const roomResponse = await fetch("https://codesarthi.onrender.com/api/room", {
+      const roomResponse = await fetch(`${API_URL}/api/room`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -100,7 +101,7 @@ const Admin = () => {
   const handleUserLoginOrSignup = async (name, email) => {
     try {
       // Call the backend API
-      const response = await fetch("https://codesarthi.onrender.com/api/user", {
+      const response = await fetch(`${API_URL}/api/user`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -125,7 +126,7 @@ const Admin = () => {
     try {
       // Find all rooms created by this user's email
       const response = await fetch(
-        `https://codesarthi.onrender.com/api/room/user/${email}`
+        `${API_URL}/api/room/user/${email}`
       );
 
       if (!response.ok) {
