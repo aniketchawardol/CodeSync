@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import ChatMessage from "./ChatMessage";
 
 const gemini_api = import.meta.env.VITE_GEMINI_KEY
@@ -8,11 +8,7 @@ const Chatbot = ({wdth}) => {
   const [messages, setMessages] = useState([{text: "Hi! how can I help you?", sender: "AI"}]);
   const [input, setInput] = useState("");
 
-  const genAI = new GoogleGenerativeAI(
-    gemini_api
-  );
-  
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const ai = new GoogleGenAI({ apiKey: gemini_api });
 
   const handleSend = async () => {
     if (input.trim()) {
@@ -24,8 +20,11 @@ const Chatbot = ({wdth}) => {
       setInput("");
     
       // Handle bot response
-      const result = await model.generateContent(input);
-      const botResponse = await result.response.text();
+      const result = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: input,
+      });
+      const botResponse = result.text;
     
       setMessages((prevMessages) => [
         ...prevMessages,
